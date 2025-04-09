@@ -206,16 +206,19 @@
 	  const outlineThickness = parseInt(document.getElementById("outlineThickness").value);
 
 	  if (outline) {
-		ctx.strokeStyle = outlineColor;
-		ctx.fillStyle = outlineColor;
-		ctx.lineWidth = thickness + 2 * outlineThickness;
-		drawShape(shape, w, h, gapX, gapY, centerX, centerY);
+	     ctx.save();
+	     ctx.lineWidth = thickness + 2 * outlineThickness;
+	     ctx.strokeStyle = outlineColor;
+	     ctx.fillStyle = 'transparent'; // no fill for outline
+	     drawShape(shape, w, h, gapX, gapY, centerX, centerY, false);
+	     ctx.restore();
 	  }
+
 
 	  ctx.strokeStyle = color;
 	  ctx.fillStyle = color;
 	  ctx.lineWidth = thickness;
-	  drawShape(shape, w, h, gapX, gapY, centerX, centerY);
+	  drawShape(shape, w, h, gapX, gapY, centerX, centerY, false);
 
 	  if (document.getElementById("centerDot").checked) {
 		const dotW = parseInt(document.getElementById("dotWidth").value);
@@ -236,42 +239,52 @@
 	  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 	}
 
-	function drawShape(shape, w, h, gapX, gapY, centerX, centerY) {
+	function drawShape(shape, w, h, gapX, gapY, centerX, centerY, isOutline) {
 	  ctx.beginPath();
 	  switch (shape) {
-		case "cross":
-		  ctx.moveTo(centerX - gapX - w / 2, centerY);
-		  ctx.lineTo(centerX - gapX, centerY);
-		  ctx.moveTo(centerX + gapX, centerY);
-		  ctx.lineTo(centerX + gapX + w / 2, centerY);
-		  ctx.moveTo(centerX, centerY - gapY - h / 2);
-		  ctx.lineTo(centerX, centerY - gapY);
-		  ctx.moveTo(centerX, centerY + gapY);
-		  ctx.lineTo(centerX, centerY + gapY + h / 2);
-		  break;
-		case "t":
-		  ctx.moveTo(centerX - gapX - w / 2, centerY);
-		  ctx.lineTo(centerX - gapX, centerY);
-		  ctx.moveTo(centerX + gapX, centerY);
-		  ctx.lineTo(centerX + gapX + w / 2, centerY);
-		  ctx.moveTo(centerX, centerY + gapY);
-		  ctx.lineTo(centerX, centerY + gapY + h / 2);
-		  break;
-		case "filled-circle":
-		  ctx.arc(centerX, centerY, Math.min(w, h) / 2, 0, Math.PI * 2);
-		  break;
-		case "hollow-circle":
-		  ctx.arc(centerX, centerY, Math.min(w, h) / 2, 0, Math.PI * 2);
-		  break;
-		case "triangle":
-		  ctx.moveTo(centerX, centerY);
-		  ctx.lineTo(centerX - w / 2, centerY + h);
-		  ctx.lineTo(centerX + w / 2, centerY + h);
-		  ctx.closePath();
-		  break;
+	    case "cross":
+	      ctx.moveTo(centerX - gapX - w / 2, centerY);
+	      ctx.lineTo(centerX - gapX, centerY);
+	      ctx.moveTo(centerX + gapX, centerY);
+	      ctx.lineTo(centerX + gapX + w / 2, centerY);
+	      ctx.moveTo(centerX, centerY - gapY - h / 2);
+	      ctx.lineTo(centerX, centerY - gapY);
+	      ctx.moveTo(centerX, centerY + gapY);
+	      ctx.lineTo(centerX, centerY + gapY + h / 2);
+	      break;
+	    case "t":
+	      ctx.moveTo(centerX - gapX - w / 2, centerY);
+	      ctx.lineTo(centerX - gapX, centerY);
+	      ctx.moveTo(centerX + gapX, centerY);
+	      ctx.lineTo(centerX + gapX + w / 2, centerY);
+	      ctx.moveTo(centerX, centerY + gapY);
+	      ctx.lineTo(centerX, centerY + gapY + h / 2);
+	      break;
+	    case "filled-circle":
+	      ctx.arc(centerX, centerY, Math.min(w, h) / 2, 0, Math.PI * 2);
+	      break;
+	    case "hollow-circle":
+	      ctx.arc(centerX, centerY, Math.min(w, h) / 2, 0, Math.PI * 2);
+	      break;
+	    case "triangle":
+	      ctx.moveTo(centerX, centerY);
+	      ctx.lineTo(centerX - w / 2, centerY + h);
+	      ctx.lineTo(centerX + w / 2, centerY + h);
+	      ctx.closePath();
+	      break;
 	  }
-	  shape === "filled-circle" || shape === "triangle" ? ctx.fill() : ctx.stroke();
+	
+	  if (shape === "filled-circle" || shape === "triangle") {
+	    if (isOutline) {
+	      ctx.stroke();
+	    } else {
+	      ctx.fill();
+	    }
+	  } else {
+	    ctx.stroke();
+	  }
 	}
+
 
 
     async function uploadToImgur() {
