@@ -18,7 +18,7 @@
       border: 1px solid #444;
       margin: 20px;
     }
-    button, input[type="color"], select, input[type="range"] {
+    button, input[type="color"], select, input[type="range"], input[type="number"] {
       padding: 10px;
       margin: 5px;
       border: none;
@@ -69,21 +69,25 @@
     <div class="slider-group">
       <label for="width">Width <span id="widthValue">64</span></label>
       <input type="range" id="width" min="1" max="200" value="64">
+      <input type="number" id="widthNum" min="1" max="200" value="64">
     </div>
 
     <div class="slider-group">
       <label for="height">Height <span id="heightValue">48</span></label>
       <input type="range" id="height" min="1" max="200" value="48">
+      <input type="number" id="heightNum" min="1" max="200" value="48">
     </div>
 
     <div class="slider-group">
       <label for="thickness">Thickness <span id="thicknessValue">4</span></label>
       <input type="range" id="thickness" min="1" max="20" value="4">
+      <input type="number" id="thicknessNum" min="1" max="20" value="4">
     </div>
 
     <div class="slider-group">
       <label for="gap">Gap <span id="gapValue">0</span></label>
       <input type="range" id="gap" min="0" max="100" value="0">
+      <input type="number" id="gapNum" min="0" max="100" value="0">
     </div>
 
     <div class="toggle-group">
@@ -95,10 +99,27 @@
         <div class="slider-group">
           <label for="dotWidth">Dot Width <span id="dotWidthValue">6</span></label>
           <input type="range" id="dotWidth" min="1" max="50" value="6">
+          <input type="number" id="dotWidthNum" min="1" max="50" value="6">
         </div>
         <div class="slider-group">
           <label for="dotHeight">Dot Height <span id="dotHeightValue">6</span></label>
           <input type="range" id="dotHeight" min="1" max="50" value="6">
+          <input type="number" id="dotHeightNum" min="1" max="50" value="6">
+        </div>
+      </div>
+    </div>
+
+    <div class="toggle-group">
+      <label>
+        <input type="checkbox" id="outline"> Outline
+      </label>
+      <div id="outlineOptions" class="hidden">
+        <label for="outlineColor">Outline Color:</label>
+        <input type="color" id="outlineColor" value="#000000" />
+        <div class="slider-group">
+          <label for="outlineThickness">Outline Thickness <span id="outlineThicknessValue">2</span></label>
+          <input type="range" id="outlineThickness" min="1" max="20" value="2">
+          <input type="number" id="outlineThicknessNum" min="1" max="20" value="2">
         </div>
       </div>
     </div>
@@ -111,16 +132,22 @@
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
 
-    function updateLabel(id, value) {
-      document.getElementById(id + "Value").innerText = value;
-    }
-
-    document.querySelectorAll('input[type="range"]').forEach(input => {
-      input.addEventListener("input", () => {
-        updateLabel(input.id, input.value);
+    function syncSliderAndNumber(id) {
+      const slider = document.getElementById(id);
+      const num = document.getElementById(id + "Num");
+      slider.addEventListener("input", () => {
+        num.value = slider.value;
+        document.getElementById(id + "Value").innerText = slider.value;
         drawCrosshair();
       });
-    });
+      num.addEventListener("input", () => {
+        slider.value = num.value;
+        document.getElementById(id + "Value").innerText = num.value;
+        drawCrosshair();
+      });
+    }
+
+    ["width", "height", "thickness", "gap", "dotWidth", "dotHeight", "outlineThickness"].forEach(syncSliderAndNumber);
 
     document.getElementById("color").addEventListener("input", drawCrosshair);
     document.getElementById("shape").addEventListener("change", drawCrosshair);
@@ -128,6 +155,11 @@
       document.getElementById("dotSliders").classList.toggle("hidden");
       drawCrosshair();
     });
+    document.getElementById("outline").addEventListener("change", () => {
+      document.getElementById("outlineOptions").classList.toggle("hidden");
+      drawCrosshair();
+    });
+    document.getElementById("outlineColor").addEventListener("input", drawCrosshair);
 
     function clearCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -143,14 +175,38 @@
       const gap = parseInt(document.getElementById("gap").value);
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
+      const outline = document.getElementById("outline").checked;
+      const outlineColor = document.getElementById("outlineColor").value;
+      const outlineThickness = parseInt(document.getElementById("outlineThickness").value);
+
+      if (outline) {
+        ctx.strokeStyle = outlineColor;
+        ctx.fillStyle = outlineColor;
+        ctx.lineWidth = thickness + 2 * outlineThickness;
+        drawShape(shape, w, h, gap, centerX, centerY);
+      }
 
       ctx.strokeStyle = color;
       ctx.fillStyle = color;
       ctx.lineWidth = thickness;
+      drawShape(shape, w, h, gap, centerX, centerY);
 
+      if (document.getElementById("centerDot").checked) {
+        const dotW = parseInt(document.getElementById("dotWidth").value);
+        const dotH = parseInt(document.getElementById("dotHeight").value);
+        if (outline) {
+          ctx.fillStyle = outlineColor;
+          ctx.fillRect(centerX - dotW / 2 - outlineThickness, centerY - dotH / 2 - outlineThickness, dotW + 2 * outlineThickness, dotH + 2 * outlineThickness);
+        }
+        ctx.fillStyle = color;
+        ctx.fillRect(centerX - dotW / 2, centerY - dotH / 2, dotW, dotH);
+      }
+    }
+
+    function drawShape(shape, w, h, gap, centerX, centerY) {
+      ctx.beginPath();
       switch (shape) {
         case "cross":
-          ctx.beginPath();
           ctx.moveTo(centerX - gap - w / 2, centerY);
           ctx.lineTo(centerX - gap, centerY);
           ctx.moveTo(centerX + gap, centerY);
@@ -159,43 +215,29 @@
           ctx.lineTo(centerX, centerY - gap);
           ctx.moveTo(centerX, centerY + gap);
           ctx.lineTo(centerX, centerY + gap + h / 2);
-          ctx.stroke();
           break;
         case "t":
-          ctx.beginPath();
           ctx.moveTo(centerX - gap - w / 2, centerY);
           ctx.lineTo(centerX - gap, centerY);
           ctx.moveTo(centerX + gap, centerY);
           ctx.lineTo(centerX + gap + w / 2, centerY);
           ctx.moveTo(centerX, centerY + gap);
           ctx.lineTo(centerX, centerY + gap + h / 2);
-          ctx.stroke();
           break;
         case "filled-circle":
-          ctx.beginPath();
           ctx.arc(centerX, centerY, Math.min(w, h) / 2, 0, Math.PI * 2);
-          ctx.fill();
           break;
         case "hollow-circle":
-          ctx.beginPath();
           ctx.arc(centerX, centerY, Math.min(w, h) / 2, 0, Math.PI * 2);
-          ctx.stroke();
           break;
         case "triangle":
-          ctx.beginPath();
           ctx.moveTo(centerX, centerY - h / 2);
           ctx.lineTo(centerX - w / 2, centerY + h / 2);
           ctx.lineTo(centerX + w / 2, centerY + h / 2);
           ctx.closePath();
-          ctx.fill();
           break;
       }
-
-      if (document.getElementById("centerDot").checked) {
-        const dotW = parseInt(document.getElementById("dotWidth").value);
-        const dotH = parseInt(document.getElementById("dotHeight").value);
-        ctx.fillRect(centerX - dotW / 2, centerY - dotH / 2, dotW, dotH);
-      }
+      shape === "filled-circle" || shape === "triangle" ? ctx.fill() : ctx.stroke();
     }
 
     async function uploadToImgur() {
